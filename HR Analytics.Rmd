@@ -1,0 +1,270 @@
+---
+title: "ml project"
+output:
+  word_document: default
+  html_document: default
+  pdf_document: default
+---
+
+##############Chapter 1: introduction
+
+The dataset HR.Analytics.csv contains sample of candidates that we part of a recruitment process of particular client of ScaleneWorks. ScaleneWorks supports several information technology(IT) companies in India with their talent acquisition. One of the challenge they face is about "30% of the candidates who accept the jobs offers, do not join the company."
+This lead to huge loss of revenue and time as the companies initiate the recruitment process again to fill the workforce demand. ScaleneWorks want to find out if a model can be build to predict the likelihood of a candidate joining the company. If the likelihood is high, then the company can go ahead and offer the jobs to the candidates.
+##############Chapter 2: Data understanding
+
+###The install.packages() can be used to install packages at the R console. The library() function loads packages that have been installed so that you may access the functionality in the package.
+## Install library package
+```{r}
+library(tidyverse)
+library(ggplot2)
+library(e1071)
+library(caret)
+library(rpart)
+library(rpart.plot)
+library(tune)
+library(tree)
+```
+
+###Data Dictionary	
+##Variable Name	Variable Description
+
+#Candidate reference number
+ Unique number to identify the candidate
+ 
+#DOJ extended
+ Binary variable identifying whether candidate asked for date of joining extension (Yes/No)
+
+#Duration to accept the offer
+  Number of days taken by the candidate to accept the offer (continuous variable)
+
+#Notice period	
+  Notice period to be served in the parting company before candidate can join this company (continuous variable)
+
+#Offered band	
+  Band offered to the candidate based on experience and performance in interview rounds (categorical variable labelled C0/C1/C2/C3/C4/C5/C6)
+
+#Percentage hike (CTC) expected 
+  Percentage hike expected by the candidate (continuous variable)
+
+#Percentage hike offered (CTC)	
+  Percentage hike offered by the company (continuous variable)
+
+#Joining bonus	
+  Binary variable indicating if joining bonus was given or not (Yes/No)
+
+#Gender	
+  Gender of the candidate (Male/Female)
+
+#Candidate source	
+  Source from which resume of the candidate was obtained (categorical variables with categories: Employee referral/Agency/Direct)
+
+#REX (in years)	
+  Relevant years of experience of the candidate for the position offered (continuous variable)
+
+#LOB
+  Line of business for which offer was rolled out (categorical variable)
+
+#DOB
+  Date of birth of the candidate
+
+#Joining location
+  Company location for which offer was rolled out for candidate to join (categorical variable)
+
+#Candidate relocation status
+  Binary variable indicating whether candidate has to relocate from one city to another city for joining (Yes/No)
+
+#HR status
+  Final joining status of candidate (Joined/Not-Joined)
+
+
+###Importing data into R is a necessary step that, at times, can become time intensive. To ease this task, RStudio includes new features to import data from: csv, xls, xlsx, sav, dta, por, sas and stata files. 
+## Import the Dataset
+```{r}
+HR.Analytics <- read.csv("C:/Users/makesh/Desktop/HR Analytics.csv")
+View(HR.Analytics)
+```
+## Remove the Status, SLNO variable 
+```{r}
+data<-subset(HR.Analytics, select = -c(Status,SLNO),stringsAsFactors = FALSE)
+```
+```{r}
+data1=as.data.frame(unclass(data))
+```
+
+## create factor data
+```{r}
+data1$HR.Status=as.factor(data1$HR.Status)
+```
+
+###In the HR.Analytics data set, we can see immediately that there are only 9011 rows and 17 columns. This function is useful, because it tells us whether it would be okay to print the entire data frame to the console. 
+```{r}
+dim(data1)
+```
+###This function defaults to printing the first 6 rows. In the HR.Analytic data set.
+```{r}
+head(data1)
+```
+
+###The except this function prints the end of the data frame. In this case, we’ve called the last 5 observations.
+```{r}
+tail(data1)
+```
+
+### The structure of the HR.Analytics data set also tells us the number of rows (observations) and columns (variables), but it provides even more information. 
+```{r}
+str(data1)
+```
+
+###This function prints a vector of the column names, which can be useful if you’re trying to reference a particular column. For the HR.Analytics data set, 
+```{r}
+colnames(data1)
+```
+
+###The summary provides descriptive statistics including the min, max, mean, median, and quartiles of each column.
+```{r}
+summary(data1)
+```
+## check the clean data or not
+```{r}
+colSums(sapply(data1,is.na))
+```
+
+############Chapter 3: EDA using R
+
+### How many people candidate asked for date of joining extension YES/NO 
+```{r}
+ggplot(data1,aes(DOJ.Extended)) + 
+  geom_bar()
+```
+### How many candidate male or female to join the company or not join  
+```{r}
+ggplot(data1,aes(HR.Status,Gender))+geom_jitter( )
+```
+
+### the candidate how to join the company agency,direct or Employee referreal
+```{r}
+ggplot(data1,aes(Candidate.Source,HR.Status))+geom_col()
+```
+
+###which candidate work the previous company for which offer was rolled out
+```{r}
+ggplot(data1, aes(LOB)) +geom_bar()
+```
+
+
+##########Chapter 4 : Model building
+###the splits 70% of the data selected randomly into training set and the remaining 30% sample into test data set.
+##train=6307 obs. test=2704 obs, both 17 variable 
+```{r}
+set.seed(100)
+data = sample(nrow(data1), nrow(data1)*0.7)
+train<-data1[data,]
+test<-data1[-data,]
+```
+
+###In machine learning, Support vector machine(SVM) are supervised learning models with associated learning algorithms that analyze data used for classification and regression analysis. It is mostly used in classification problems. 
+## SVM model building
+```{r}
+svm1 <- svm(HR.Status~., data=train, kernal="linear", cost=1)
+summary(svm1)
+```
+```{r}
+svm2<- svm(HR.Status ~ ., data=train, kernal="radial",
+          gamma=0.02777778 ,cost=100)
+summary(svm2)
+```
+```{r}
+svm3<- svm(HR.Status ~., data=train, kernal="polynomial" ,cost=1,degree=2)
+summary(svm3)
+```
+##Advantages of Support Vector Machine Algorithm
+>Accuracy
+>Works very well with limited datasets
+>Kernel SVM contains a non-linear transformation function to convert the complicated non-linearly separable data into  linearly separable data.
+
+###Decision tree classifiers are used successfully in many diverse areas. Their most important feature is the capability of capturing descriptive decisionmaking knowledge from the supplied data. Decision tree can be generated from training sets.
+##Decision Tree
+
+```{r}
+trctrl <- trainControl(method = "repeatedcv", number = 10, repeats = 3)
+set.seed(3333)
+dtree_fit <- train(HR.Status ~., data = train, method = "rpart",
+                   parms = list(split = "information"),
+                   trControl=trctrl,
+                   tuneLength = 10)
+```
+```{r}
+dtree_fit
+```
+
+```{r}
+prp(dtree_fit$finalModel, box.palette = "Red", tweak = 1.2)
+```
+```
+
+###Randomforest
+
+```{r}
+library(randomForest)
+classifier = randomForest(x = train[-12],
+                          y = train$HR.Status,
+                          ntree = 500, random_state = 0)
+```
+
+
+```{r}
+y_pred= predict(classifier, newdata = test[-12])
+y_pred
+```
+```{r}
+cm = table(test[, 12], y_pred)
+cm
+```
+
+###########Chapter 5: Performance Evaluation
+
+###The SVM was the most accurate model. Now we want to get an idea of the accuracy of the model on our test data.This will give us an independent final check on the accuracy of the best model. It is valuable to keep a test data just in case you made a slip during such as overfitting to the training set or a data leak. Both will result in an overly optimistic result.We can run the SVM model directly on the test data and summarize the results in a confusion matrix.
+##Predicting on test set
+
+```{r}
+lin_pred=predict(svm1,test) 
+table(lin_pred,test$HR.Status)
+```
+>Error rate 0.1882 ~ 18%
+
+```{r}
+radial_pred=predict(svm2,test)
+accuracy<-table(radial_pred,test$HR.Status)
+accuracy
+```
+ >Error rate 0.187869 ~ 18%
+
+```{r}
+poly_pred=predict(svm3,test)
+table(poly_pred,test$HR.Status)
+```
+>Error rate 0.1882 ~ 18%
+
+
+##Accuracy of the maodel
+```{r}
+sum(diag(accuracy)/sum(accuracy))
+```
+>Accuracy=0.8121 ~ 81%
+
+
+
+
+########Chapter 6 : Conclusion
+
+The Suppor Vector Machine Model was built to predict the candidates probability of which candidate join or not join the CTC company. 
+
+
+
+
+
+
+
+
+
+
